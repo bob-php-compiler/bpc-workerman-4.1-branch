@@ -226,13 +226,6 @@ class Worker
     public $protocol = null;
 
     /**
-     * Root path for autoload.
-     *
-     * @var string
-     */
-    protected $_autoloadRootPath = '';
-
-    /**
      * Pause accept new connections or not.
      *
      * @var bool
@@ -272,7 +265,7 @@ class Worker
      * @var string
      */
     public static $statusFile = '';
-    
+
     /**
      * Log file.
      *
@@ -663,7 +656,7 @@ class Worker
         if (static::$_OS !== \OS_TYPE_LINUX) {
             return;
         }
-        
+
         static::$_statisticsFile =  static::$statusFile ? static::$statusFile : __DIR__ . '/../workerman-' .posix_getpid().'.status';
 
         foreach (static::$_workers as $worker) {
@@ -2297,11 +2290,6 @@ class Worker
         static::$_workers[$this->workerId] = $this;
         static::$_pidMap[$this->workerId]  = array();
 
-        // Get autoload root path.
-        $backtrace               = \debug_backtrace();
-        $this->_autoloadRootPath = \dirname($backtrace[0]['file']);
-        Autoloader::setRootPath($this->_autoloadRootPath);
-
         // Context for socket.
         if ($socket_name) {
             $this->_socketName = $socket_name;
@@ -2333,9 +2321,6 @@ class Worker
         if (!$this->_socketName) {
             return;
         }
-
-        // Autoload.
-        Autoloader::setRootPath($this->_autoloadRootPath);
 
         if (!$this->_mainSocket) {
 
