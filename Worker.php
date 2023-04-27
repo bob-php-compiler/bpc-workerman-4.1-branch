@@ -299,7 +299,7 @@ class Worker
      *
      * @var string
      */
-    public static $eventLoopClass = '';
+    public static $eventLoopClass = '\Workerman\Events\Event';
 
     /**
      * Process title
@@ -467,16 +467,6 @@ class Worker
     protected static $_globalStatistics = array(
         'start_timestamp'  => 0,
         'worker_exit_info' => array()
-    );
-
-    /**
-     * Available event loops.
-     *
-     * @var array
-     */
-    protected static $_availableEventLoops = array(
-        'event'    => '\Workerman\Events\Event',
-        'libevent' => '\Workerman\Events\Libevent'
     );
 
     /**
@@ -784,7 +774,7 @@ class Worker
 
         //show version
         $line_version = 'Workerman version:' . static::VERSION . \str_pad('PHP version:', 22, ' ', \STR_PAD_LEFT) . \PHP_VERSION;
-        $line_version .= \str_pad('Event-Loop:', 22, ' ', \STR_PAD_LEFT) . static::getEventLoopName() . \PHP_EOL;
+        $line_version .= \str_pad('Event-Loop:', 22, ' ', \STR_PAD_LEFT) . static::$eventLoopClass . \PHP_EOL;
         !\defined('LINE_VERSIOIN_LENGTH') && \define('LINE_VERSIOIN_LENGTH', \strlen($line_version));
         $total_length = static::getSingleLineTotalLength();
         $line_one = '<n>' . \str_pad('<w> WORKERMAN </w>', $total_length + \strlen('<w></w>'), '-', \STR_PAD_BOTH) . '</n>'. \PHP_EOL;
@@ -1333,37 +1323,6 @@ class Worker
     }
 
     /**
-     * Get event loop name.
-     *
-     * @return string
-     */
-    protected static function getEventLoopName()
-    {
-        if (static::$eventLoopClass) {
-            return static::$eventLoopClass;
-        }
-
-        if (!\class_exists('\Swoole\Event', false)) {
-            unset(static::$_availableEventLoops['swoole']);
-        }
-
-        $loop_name = '';
-        foreach (static::$_availableEventLoops as $name=>$class) {
-            if (\extension_loaded($name)) {
-                $loop_name = $name;
-                break;
-            }
-        }
-
-        if ($loop_name) {
-            static::$eventLoopClass = static::$_availableEventLoops[$loop_name];
-        } else {
-            static::$eventLoopClass =  '\Workerman\Events\Select';
-        }
-        return static::$eventLoopClass;
-    }
-
-    /**
      * Get all pids of worker processes.
      *
      * @return array
@@ -1602,8 +1561,7 @@ class Worker
 
             // Create a global event loop.
             if (!static::$globalEvent) {
-                $event_loop_class = static::getEventLoopName();
-                static::$globalEvent = new $event_loop_class;
+                static::$globalEvent = new static::$eventLoopClass;
             }
 
             // Reinstall signal.
@@ -2033,7 +1991,7 @@ class Worker
                 FILE_APPEND);
             $load_str = 'load average: ' . \implode(", ", $loadavg);
             \file_put_contents(static::$_statisticsFile,
-                \str_pad($load_str, 33) . 'event-loop:' . static::getEventLoopName() . "\n", \FILE_APPEND);
+                \str_pad($load_str, 33) . 'event-loop:' . static::$eventLoopClass . "\n", \FILE_APPEND);
             \file_put_contents(static::$_statisticsFile,
                 \count(static::$_pidMap) . ' workers       ' . \count(static::getAllWorkerPids()) . " processes\n",
                 \FILE_APPEND);
