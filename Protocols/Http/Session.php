@@ -402,12 +402,7 @@ class Session
         static::$_handler->gc(static::$lifetime);
     }
 
-    /**
-     * __destruct.
-     *
-     * @return void
-     */
-    public function __destruct()
+    public function destruct()
     {
         $this->save();
         if (\random_int(1, static::$gcProbability[1]) <= static::$gcProbability[0]) {

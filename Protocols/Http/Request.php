@@ -46,7 +46,7 @@ class Request
     public $properties = array();
 
     /**
-     * @var int 
+     * @var int
      */
     public static $maxFileUploads = 1024;
 
@@ -505,7 +505,7 @@ class Request
 
         if ($files_encode_string) {
             parse_str($files_encode_string, $this->_data['files']);
-            \array_walk_recursive($this->_data['files'], function (&$value) use ($files) {
+            \array_walk_recursive($this->_data['files'], function (&$value, $key) use ($files) {
                 $value = $files[$value];
             });
         }
@@ -656,12 +656,7 @@ class Request
         return $this->_buffer;
     }
 
-    /**
-     * __destruct.
-     *
-     * @return void
-     */
-    public function __destruct()
+    public function destruct()
     {
         if (isset($this->_data['files'])) {
             \clearstatcache();

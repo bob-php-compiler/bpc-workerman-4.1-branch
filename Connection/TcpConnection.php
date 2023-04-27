@@ -958,14 +958,11 @@ class TcpConnection extends ConnectionInterface
             }
             unset(static::$connections[$this->_id]);
         }
+
+        $this->destruct();
     }
 
-    /**
-     * Destruct.
-     *
-     * @return void
-     */
-    public function __destruct()
+    public function destruct()
     {
         static $mod;
         self::$statistics['connection_count']--;

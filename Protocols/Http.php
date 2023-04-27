@@ -188,8 +188,13 @@ class Http
     public static function encode($response, TcpConnection $connection)
     {
         if (isset($connection->__request)) {
+            $session = $connection->__request->session;
+            if ($session) {
+                $session->destruct();
+            }
             $connection->__request->session = null;
             $connection->__request->connection = null;
+            $connection->__request->destruct();
             $connection->__request = null;
         }
         if (!\is_object($response)) {
