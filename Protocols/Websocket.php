@@ -454,7 +454,8 @@ class Websocket implements \Workerman\Protocols\ProtocolInterface
                     Worker::stopAll(250, $e);
                 }
                 if (!empty($_SESSION) && \class_exists('\GatewayWorker\Lib\Context')) {
-                    $connection->session = \GatewayWorker\Lib\Context::sessionEncode($_SESSION);
+                    $className = '\GatewayWorker\Lib\Context';
+                    $connection->session = $className::sessionEncode($_SESSION);
                 }
                 $_GET = $_SERVER = $_SESSION = $_COOKIE = array();
             }

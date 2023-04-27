@@ -727,6 +727,9 @@ class TcpConnection extends ConnectionInterface
             $this->destroy();
             return false;
         }
+        if (defined('__BPC__')) {
+            $type = STREAM_CRYPTO_METHOD_TLS_SERVER;
+        } else {
         $async = $this instanceof AsyncTcpConnection;
 
         /**
@@ -743,6 +746,7 @@ class TcpConnection extends ConnectionInterface
             $type = \STREAM_CRYPTO_METHOD_SSLv2_CLIENT | \STREAM_CRYPTO_METHOD_SSLv23_CLIENT;
         }else{
             $type = \STREAM_CRYPTO_METHOD_SSLv2_SERVER | \STREAM_CRYPTO_METHOD_SSLv23_SERVER;
+        }
         }
 
         // Hidden error.

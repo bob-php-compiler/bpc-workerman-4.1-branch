@@ -192,7 +192,7 @@ class Response
         $this->_header = \array_merge_recursive($this->_header, $headers);
         return $this;
     }
-    
+
     /**
      * Remove header.
      *
@@ -281,7 +281,7 @@ class Response
 
     /**
      * Get http raw body.
-     * 
+     *
      * @return string
      */
     public function rawBody() {
@@ -442,7 +442,11 @@ class Response
     public static function initMimeTypeMap()
     {
         $mime_file = __DIR__ . '/mime.types';
+        if (defined('__BPC__')) {
+            $items = explode("\n", resource_get_contents($mime_file));
+        } else {
         $items = \file($mime_file, \FILE_IGNORE_NEW_LINES | \FILE_SKIP_EMPTY_LINES);
+        }
         foreach ($items as $content) {
             if (\preg_match("/\s*(\S+)\s+(\S.+)/", $content, $match)) {
                 $mime_type       = $match[1];

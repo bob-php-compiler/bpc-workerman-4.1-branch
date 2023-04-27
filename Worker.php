@@ -19,7 +19,6 @@ use Workerman\Connection\ConnectionInterface;
 use Workerman\Connection\TcpConnection;
 use Workerman\Connection\UdpConnection;
 use Workerman\Lib\Timer;
-use Workerman\Events\Select;
 use \Exception;
 
 /**
@@ -446,20 +445,6 @@ class Worker
     protected static $_startFile = '';
 
     /**
-     * OS.
-     *
-     * @var string
-     */
-    protected static $_OS = \OS_TYPE_LINUX;
-
-    /**
-     * Processes for windows.
-     *
-     * @var array
-     */
-    protected static $_processForWindows = array();
-
-    /**
      * Status info of current worker process.
      *
      * @var array
@@ -556,9 +541,6 @@ class Worker
         if (\PHP_SAPI !== 'cli') {
             exit("Only run in command line mode \n");
         }
-        if (\DIRECTORY_SEPARATOR === '\\') {
-            self::$_OS = \OS_TYPE_WINDOWS;
-        }
     }
 
     /**
@@ -573,20 +555,32 @@ class Worker
         });
 
         // Start file.
+        if (defined('__BPC__')) {
+            static::$_startFile = $GLOBALS['argv'][0];
+        } else {
         $backtrace        = \debug_backtrace();
         static::$_startFile = $backtrace[\count($backtrace) - 1]['file'];
+        }
 
 
         $unique_prefix = \str_replace('/', '_', static::$_startFile);
 
         // Pid file.
         if (empty(static::$pidFile)) {
+            if (defined('__BPC__')) {
+                static::$pidFile = getcwd() . "/$unique_prefix.pid";
+            } else {
             static::$pidFile = __DIR__ . "/../$unique_prefix.pid";
+            }
         }
 
         // Log file.
         if (empty(static::$logFile)) {
+            if (defined('__BPC__')) {
+                static::$logFile = getcwd() . '/workerman.log';
+            } else {
             static::$logFile = __DIR__ . '/../workerman.log';
+            }
         }
         $log_file = (string)static::$logFile;
         if (!\is_file($log_file)) {
@@ -643,11 +637,11 @@ class Worker
      */
     protected static function initWorkers()
     {
-        if (static::$_OS !== \OS_TYPE_LINUX) {
-            return;
-        }
-
+        if (defined('__BPC__')) {
+            static::$_statisticsFile =  static::$statusFile ? static::$statusFile : getcwd() . '/workerman-' .posix_getpid().'.status';
+        } else {
         static::$_statisticsFile =  static::$statusFile ? static::$statusFile : __DIR__ . '/../workerman-' .posix_getpid().'.status';
+        }
 
         foreach (static::$_workers as $worker) {
             // Worker name.
@@ -764,13 +758,6 @@ class Worker
         if (\in_array('-q', $argv)) {
             return;
         }
-        if (static::$_OS !== \OS_TYPE_LINUX) {
-            static::safeEcho("----------------------- WORKERMAN -----------------------------\r\n");
-            static::safeEcho('Workerman version:'. static::VERSION. '          PHP version:'. \PHP_VERSION. "\r\n");
-            static::safeEcho("------------------------ WORKERS -------------------------------\r\n");
-            static::safeEcho("worker                        listen                              processes status\r\n");
-            return;
-        }
 
         //show version
         $line_version = 'Workerman version:' . static::VERSION . \str_pad('PHP version:', 22, ' ', \STR_PAD_LEFT) . \PHP_VERSION;
@@ -870,9 +857,6 @@ class Worker
      */
     protected static function parseCommand()
     {
-        if (static::$_OS !== \OS_TYPE_LINUX) {
-            return;
-        }
         global $argv;
         // Check argv;
         $start_file = $argv[0];
@@ -926,7 +910,11 @@ class Worker
             exit;
         }
 
+        if (defined('__BPC__')) {
+            $statistics_file =  static::$statusFile ? static::$statusFile : getcwd() . "/workerman-$master_pid.$command";
+        } else {
         $statistics_file =  static::$statusFile ? static::$statusFile : __DIR__ . "/../workerman-$master_pid.$command";
+        }
 
         // execute command.
         switch ($command) {
@@ -1116,10 +1104,11 @@ class Worker
      */
     protected static function installSignal()
     {
-        if (static::$_OS !== \OS_TYPE_LINUX) {
-            return;
-        }
+        if (defined('__BPC__')) {
+            $signalHandler = array('\Workerman\Worker', 'signalHandler');
+        } else {
         $signalHandler = '\Workerman\Worker::signalHandler';
+        }
         // stop
         \pcntl_signal(\SIGINT, $signalHandler, false);
         // stop
@@ -1149,10 +1138,11 @@ class Worker
      */
     protected static function reinstallSignal()
     {
-        if (static::$_OS !== \OS_TYPE_LINUX) {
-            return;
-        }
+        if (defined('__BPC__')) {
+            $signalHandler = array('\Workerman\Worker', 'signalHandler');
+        } else {
         $signalHandler = '\Workerman\Worker::signalHandler';
+        }
         // uninstall stop signal handler
         \pcntl_signal(\SIGINT, \SIG_IGN, false);
         // uninstall stop signal handler
@@ -1238,7 +1228,7 @@ class Worker
      */
     protected static function daemonize()
     {
-        if (!static::$daemonize || static::$_OS !== \OS_TYPE_LINUX) {
+        if (!static::$daemonize) {
             return;
         }
         \umask(0);
@@ -1291,7 +1281,7 @@ class Worker
             $STDERR = \fopen(static::$stdoutFile, "a");
             // Fix standard output cannot redirect of PHP 8.1.8's bug
             if (\function_exists('posix_isatty') && \posix_isatty(2)) {
-                \ob_start(function ($string) {
+                \ob_start(function ($string, $phase) {
                     \file_put_contents(static::$stdoutFile, $string, FILE_APPEND);
                 }, 1);
             }
@@ -1312,10 +1302,6 @@ class Worker
      */
     protected static function saveMasterPid()
     {
-        if (static::$_OS !== \OS_TYPE_LINUX) {
-            return;
-        }
-
         static::$_masterPid = \posix_getpid();
         if (false === \file_put_contents(static::$pidFile, static::$_masterPid)) {
             throw new Exception('can not save pid to ' . static::$pidFile);
@@ -1345,11 +1331,7 @@ class Worker
      */
     protected static function forkWorkers()
     {
-        if (static::$_OS === \OS_TYPE_LINUX) {
-            static::forkWorkersForLinux();
-        } else {
-            static::forkWorkersForWindows();
-        }
+        static::forkWorkersForLinux();
     }
 
     /**
@@ -1376,147 +1358,6 @@ class Worker
             }
         }
     }
-
-    /**
-     * Fork some worker processes.
-     *
-     * @return void
-     */
-    protected static function forkWorkersForWindows()
-    {
-        $files = static::getStartFilesForWindows();
-        global $argv;
-        if(\in_array('-q', $argv) || \count($files) === 1)
-        {
-            if(\count(static::$_workers) > 1)
-            {
-                static::safeEcho("@@@ Error: multi workers init in one php file are not support @@@\r\n");
-                static::safeEcho("@@@ See http://doc.workerman.net/faq/multi-woker-for-windows.html @@@\r\n");
-            }
-            elseif(\count(static::$_workers) <= 0)
-            {
-                exit("@@@no worker inited@@@\r\n\r\n");
-            }
-
-            \reset(static::$_workers);
-            /** @var Worker $worker */
-            $worker = current(static::$_workers);
-
-            \Workerman\Timer::delAll();
-
-            //Update process state.
-            static::$_status = static::STATUS_RUNNING;
-
-            // Register shutdown function for checking errors.
-            \register_shutdown_function([__CLASS__, 'checkErrors']);
-
-            // Create a global event loop.
-            if (!static::$globalEvent) {
-                $eventLoopClass = static::getEventLoopName();
-                static::$globalEvent = new $eventLoopClass;
-            }
-
-            // Reinstall signal.
-            static::reinstallSignal();
-
-            // Init Timer.
-            Timer::init(static::$globalEvent);
-
-            \restore_error_handler();
-
-            // Display UI.
-            static::safeEcho(\str_pad($worker->name, 21) . \str_pad($worker->getSocketName(), 36) . \str_pad('1', 10) . "[ok]\n");
-            $worker->listen();
-            $worker->run();
-            static::$globalEvent->loop();
-            if (static::$_status !== self::STATUS_SHUTDOWN) {
-                $err = new Exception('event-loop exited');
-                static::log($err);
-                exit(250);
-            }
-            exit(0);
-        }
-        else
-        {
-            static::$globalEvent = new \Workerman\Events\Select();
-            Timer::init(static::$globalEvent);
-            foreach($files as $start_file)
-            {
-                static::forkOneWorkerForWindows($start_file);
-            }
-        }
-    }
-
-    /**
-     * Get start files for windows.
-     *
-     * @return array
-     */
-    public static function getStartFilesForWindows() {
-        global $argv;
-        $files = array();
-        foreach($argv as $file)
-        {
-            if(\is_file($file))
-            {
-                $files[$file] = $file;
-            }
-        }
-        return $files;
-    }
-
-    /**
-     * Fork one worker process.
-     *
-     * @param string $start_file
-     */
-    public static function forkOneWorkerForWindows($start_file)
-    {
-        $start_file = \realpath($start_file);
-
-        $descriptorspec = array(
-            STDIN, STDOUT, STDOUT
-        );
-
-        $pipes       = array();
-        $process     = \proc_open("php \"$start_file\" -q", $descriptorspec, $pipes);
-
-        if (empty(static::$globalEvent)) {
-            static::$globalEvent = new Select();
-            Timer::init(static::$globalEvent);
-        }
-
-        // 保存子进程句柄
-        static::$_processForWindows[$start_file] = array($process, $start_file);
-    }
-
-    /**
-     * check worker status for windows.
-     * @return void
-     */
-    public static function checkWorkerStatusForWindows()
-    {
-        foreach(static::$_processForWindows as $process_data)
-        {
-            $process = $process_data[0];
-            $start_file = $process_data[1];
-            $status = \proc_get_status($process);
-            if(isset($status['running']))
-            {
-                if(!$status['running'])
-                {
-                    static::safeEcho("process $start_file terminated and try to restart\n");
-                    \proc_close($process);
-                    static::forkOneWorkerForWindows($start_file);
-                }
-            }
-            else
-            {
-                static::safeEcho("proc_get_status fail\n");
-            }
-        }
-    }
-
 
     /**
      * Fork one worker process.
@@ -1662,11 +1503,7 @@ class Worker
      */
     protected static function monitorWorkers()
     {
-        if (static::$_OS === \OS_TYPE_LINUX) {
-            static::monitorWorkersForLinux();
-        } else {
-            static::monitorWorkersForWindows();
-        }
+        static::monitorWorkersForLinux();
     }
 
     /**
@@ -1741,18 +1578,6 @@ class Worker
                 static::exitAndClearAll();
             }
         }
-    }
-
-    /**
-     * Monitor all child processes.
-     *
-     * @return void
-     */
-    protected static function monitorWorkersForWindows()
-    {
-        Timer::add(1, "\\Workerman\\Worker::checkWorkerStatusForWindows");
-
-        static::$globalEvent->loop();
     }
 
     /**
@@ -1898,7 +1723,11 @@ class Worker
                     Timer::add(static::$stopTimeout, '\posix_kill', array($worker_pid, \SIGKILL), false);
                 }
             }
+            if (defined('__BPC__')) {
+                Timer::add(1, array('Workerman\\Worker', 'checkIfChildRunning'));
+            } else {
             Timer::add(1, "\\Workerman\\Worker::checkIfChildRunning");
+            }
             // Remove statistics file.
             if (\is_file(static::$_statisticsFile)) {
                 @\unlink(static::$_statisticsFile);
@@ -2132,7 +1961,7 @@ class Worker
     public static function checkErrors()
     {
         if (static::STATUS_SHUTDOWN !== static::$_status) {
-            $error_msg = static::$_OS === \OS_TYPE_LINUX ? 'Worker['. \posix_getpid() .'] process terminated' : 'Worker process terminated';
+            $error_msg = 'Worker['. \posix_getpid() .'] process terminated';
             $errors    = error_get_last();
             if ($errors && ($errors['type'] === \E_ERROR ||
                     $errors['type'] === \E_PARSE ||
@@ -2174,7 +2003,7 @@ class Worker
             static::safeEcho($msg);
         }
         \file_put_contents((string)static::$logFile, \date('Y-m-d H:i:s') . ' ' . 'pid:'
-            . (static::$_OS === \OS_TYPE_LINUX ? \posix_getpid() : 1) . ' ' . $msg, \FILE_APPEND | \LOCK_EX);
+            . \posix_getpid() . ' ' . $msg, \FILE_APPEND | \LOCK_EX);
     }
 
     /**
@@ -2228,7 +2057,6 @@ class Worker
             static::$_outputDecorated = false;
         } else {
             static::$_outputDecorated =
-                static::$_OS === \OS_TYPE_LINUX &&
                 \function_exists('posix_isatty') &&
                 \posix_isatty($stream);
         }
@@ -2256,16 +2084,6 @@ class Worker
             }
             $this->_context = \stream_context_create($context_option);
         }
-
-        // Turn reusePort on.
-        /*if (static::$_OS === \OS_TYPE_LINUX  // if linux
-            && \version_compare(\PHP_VERSION,'7.0.0', 'ge') // if php >= 7.0.0
-            && \version_compare(php_uname('r'), '3.9', 'ge') // if kernel >=3.9
-            && \strtolower(\php_uname('s')) !== 'darwin' // if not Mac OS
-            && strpos($socket_name,'unix') !== 0) { // if not unix socket
-
-            $this->reusePort = true;
-        }*/
     }
 
 
