@@ -3,10 +3,6 @@ use Workerman\Worker;
 use Workerman\Connection\TcpConnection;
 require_once __DIR__ . '/autoload.inc';
 
-if (defined('__BPC__')) {
-    Worker::$processTitle = $argv[0];
-}
-
 $global_uid = 0;
 
 // 当客户端连上来时分配uid，并保存连接，并通知所有客户端

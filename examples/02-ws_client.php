@@ -3,10 +3,6 @@ use Workerman\Worker;
 use Workerman\Connection\SyncTcpConnection;
 require_once __DIR__ . '/autoload.inc';
 
-if (defined('__BPC__')) {
-    Worker::$processTitle = $argv[0];
-}
-
 $worker = new Worker();
 
 $worker->onWorkerStart = function($worker){

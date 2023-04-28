@@ -3,10 +3,6 @@ use Workerman\Worker;
 use Workerman\Connection\TcpConnection;
 require_once __DIR__ . '/autoload.inc';
 
-if (defined('__BPC__')) {
-    Worker::$processTitle = $argv[0];
-}
-
 // 注意：这里与上个例子不同，使用的是websocket协议
 $ws_worker = new Worker("websocket://0.0.0.0:2000");
 

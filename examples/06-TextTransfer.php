@@ -43,10 +43,6 @@ namespace {
     use Workerman\Connection\TcpConnection;
     require_once __DIR__ . '/autoload.inc';
 
-    if (defined('__BPC__')) {
-        Worker::$processTitle = $argv[0];
-    }
-
     $worker = new Worker('TextTransfer://0.0.0.0:8333');
     // 保存文件到tmp下
     $worker->onMessage = function(TcpConnection $connection, $data)

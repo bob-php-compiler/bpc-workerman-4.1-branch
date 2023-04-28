@@ -4,10 +4,6 @@ use Workerman\Connection\TcpConnection;
 use Workerman\Protocols\Http\Request;
 require_once __DIR__ . '/autoload.inc';
 
-if (defined('__BPC__')) {
-    Worker::$processTitle = $argv[0];
-}
-
 // 创建一个Worker监听2345端口，使用http协议通讯
 $http_worker = new Worker("http://0.0.0.0:2345");
 
