@@ -2418,7 +2418,11 @@ class Worker
             return true;
         }
 
+        if (defined('__BPC__')) {
+            return stripos($content, static::$processTitle) !== false;
+        } else {
         return stripos($content, static::$processTitle) !== false || stripos($content, 'php') !== false;
+        }
     }
 }
 
