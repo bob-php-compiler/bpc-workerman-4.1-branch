@@ -728,7 +728,12 @@ class TcpConnection extends ConnectionInterface
             return false;
         }
         if (defined('__BPC__')) {
-            $type = STREAM_CRYPTO_METHOD_TLS_SERVER;
+            $sync = $this instanceof SyncTcpConnection;
+            if ($sync) {
+                $type = STREAM_CRYPTO_METHOD_TLS_CLIENT;
+            } else {
+                $type = STREAM_CRYPTO_METHOD_TLS_SERVER;
+            }
         } else {
         $async = $this instanceof AsyncTcpConnection;
 
@@ -755,7 +760,15 @@ class TcpConnection extends ConnectionInterface
                 Worker::safeEcho("SSL handshake error: $errstr \n");
             }
         });
+        if (defined('__BPC__')) {
+            $options = $this->worker->getContextOptions();
+            if ($options && isset($options['ssl'])) {
+                $options = $options['ssl'];
+            }
+            $ret = \stream_socket_enable_crypto($socket, true, $type, $options);
+        } else {
         $ret = \stream_socket_enable_crypto($socket, true, $type);
+        }
         \restore_error_handler();
         // Negotiation has failed.
         if (false === $ret) {

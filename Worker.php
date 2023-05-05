@@ -2424,5 +2424,12 @@ class Worker
         return stripos($content, static::$processTitle) !== false || stripos($content, 'php') !== false;
         }
     }
+
+    public function getContextOptions()
+    {
+        if ($this->_context) {
+            return stream_context_get_options($this->_context);
+        }
+    }
 }
 
