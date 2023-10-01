@@ -7,3 +7,6 @@ libworkerman:
 	    -c ../workerman-bpc.conf \
 	    -l workerman \
 	    --input-file src.list
+
+install-libworkerman:
+	cd Workerman && bpc -l workerman --install
