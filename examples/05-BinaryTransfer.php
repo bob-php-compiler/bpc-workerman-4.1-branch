@@ -6,7 +6,7 @@ namespace Protocols {
         // 协议头长度
         const PACKAGE_HEAD_LEN = 5;
 
-        public static function input($recv_buffer)
+        public static function input($recv_buffer, \Workerman\Connection\ConnectionInterface $connection)
         {
             // 如果不够一个协议头的长度，则继续等待
             if(strlen($recv_buffer) < self::PACKAGE_HEAD_LEN)
@@ -19,7 +19,7 @@ namespace Protocols {
             return $package_data['total_len'];
         }
 
-        public static function decode($recv_buffer)
+        public static function decode($recv_buffer, \Workerman\Connection\ConnectionInterface $connection)
         {
             // 解包
             $package_data = unpack('Ntotal_len/Cname_len', $recv_buffer);
@@ -35,7 +35,7 @@ namespace Protocols {
              );
         }
 
-        public static function encode($data)
+        public static function encode($data, \Workerman\Connection\ConnectionInterface $connection)
         {
             // 可以根据自己的需要编码发送给客户端的数据，这里只是当做文本原样返回
             return $data;

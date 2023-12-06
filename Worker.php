@@ -1184,7 +1184,7 @@ class Worker
      *
      * @param int $signal
      */
-    public static function signalHandler($signal)
+    public static function signalHandler($signal, $siginfo)
     {
         switch ($signal) {
             // Stop.
@@ -2301,7 +2301,7 @@ class Worker
      * @param resource $socket
      * @return void
      */
-    public function acceptConnection($socket)
+    public function acceptConnection($socket, $arg2 = null, $arg3 = null)
     {
         // Accept a connection on server socket.
         \set_error_handler(function(){});

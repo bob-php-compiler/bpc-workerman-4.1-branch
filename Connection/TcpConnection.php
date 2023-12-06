@@ -563,7 +563,7 @@ class TcpConnection extends ConnectionInterface
      * @param bool $check_eof
      * @return void
      */
-    public function baseRead($socket, $check_eof = true)
+    public function baseRead($socket, $check_eof = true, $arg3 = null)
     {
         // SSL handshake.
         if ($this->transport === 'ssl' && $this->_sslHandshakeCompleted !== true) {

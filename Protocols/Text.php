@@ -50,7 +50,7 @@ class Text
      * @param string $buffer
      * @return string
      */
-    public static function encode($buffer)
+    public static function encode($buffer, ConnectionInterface $connection)
     {
         // Add "\n"
         return $buffer . "\n";
@@ -62,7 +62,7 @@ class Text
      * @param string $buffer
      * @return string
      */
-    public static function decode($buffer)
+    public static function decode($buffer, ConnectionInterface $connection)
     {
         // Remove "\n"
         return \rtrim($buffer, "\r\n");

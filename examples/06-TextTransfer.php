@@ -3,7 +3,7 @@
 namespace Protocols {
     class TextTransfer
     {
-        public static function input($recv_buffer)
+        public static function input($recv_buffer, \Workerman\Connection\ConnectionInterface $connection)
         {
             $recv_len = strlen($recv_buffer);
             if($recv_buffer[$recv_len-1] !== "\n")
@@ -13,7 +13,7 @@ namespace Protocols {
             return strlen($recv_buffer);
         }
 
-        public static function decode($recv_buffer)
+        public static function decode($recv_buffer, \Workerman\Connection\ConnectionInterface $connection)
         {
             // 解包
             $package_data = json_decode(trim($recv_buffer), true);
@@ -30,7 +30,7 @@ namespace Protocols {
              );
         }
 
-        public static function encode($data)
+        public static function encode($data, \Workerman\Connection\ConnectionInterface $connection)
         {
             // 可以根据自己的需要编码发送给客户端的数据，这里只是当做文本原样返回
             return $data;
